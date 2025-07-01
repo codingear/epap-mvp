@@ -82,6 +82,101 @@
                             </div>
                         </div>
                         
+                        <!-- Video Calls Section -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card shadow-sm border-0">
+                                    <div class="card-header bg-light border-0">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-video me-2 text-primary"></i> 
+                                            Mis Videollamadas
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        @if($videoCalls->count() > 0)
+                                            <div class="row">
+                                                @foreach($videoCalls as $call)
+                                                <div class="col-md-6 mb-3">
+                                                    <div class="card h-100 video-call-card">
+                                                        <div class="card-body">
+                                                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                                                <h6 class="card-title mb-0">
+                                                                    @if($call->type === 'welcome')
+                                                                        <i class="fas fa-hand-wave text-warning me-2"></i>
+                                                                        Videollamada de Bienvenida
+                                                                    @else
+                                                                        <i class="fas fa-chalkboard-teacher text-info me-2"></i>
+                                                                        Clase Personal
+                                                                    @endif
+                                                                </h6>
+                                                                <span class="badge bg-{{ $call->status === 'scheduled' ? 'success' : ($call->status === 'canceled' ? 'danger' : 'secondary') }}">
+                                                                    {{ ucfirst($call->status) }}
+                                                                </span>
+                                                            </div>
+                                                            
+                                                            <div class="mb-3">
+                                                                <p class="card-text mb-1">
+                                                                    <i class="fas fa-calendar me-2 text-muted"></i>
+                                                                    <strong>{{ $call->getFormattedDateTime() }}</strong>
+                                                                </p>
+                                                                <p class="card-text mb-1">
+                                                                    <i class="fas fa-clock me-2 text-muted"></i>
+                                                                    {{ $call->timezone }}
+                                                                </p>
+                                                                @if($call->teacher)
+                                                                    <p class="card-text mb-1">
+                                                                        <i class="fas fa-user-tie me-2 text-muted"></i>
+                                                                        {{ $call->teacher->name }}
+                                                                    </p>
+                                                                @endif
+                                                            </div>
+                                                            
+                                                            <div class="d-flex gap-2">
+                                                                @if($call->status === 'scheduled' && $call->google_meet_link)
+                                                                    <a href="{{ $call->google_meet_link }}" 
+                                                                       target="_blank" 
+                                                                       class="btn btn-primary btn-sm">
+                                                                        <i class="fas fa-video me-1"></i>
+                                                                        Unirse
+                                                                    </a>
+                                                                @endif
+                                                                
+                                                                @if($call->status === 'scheduled')
+                                                                    <button class="btn btn-outline-danger btn-sm" 
+                                                                            onclick="cancelCall({{ $call->id }})">
+                                                                        <i class="fas fa-times me-1"></i>
+                                                                        Cancelar
+                                                                    </button>
+                                                                @endif
+                                                                
+                                                                @if($call->google_meet_link)
+                                                                    <button class="btn btn-outline-secondary btn-sm" 
+                                                                            onclick="copyMeetLink('{{ $call->google_meet_link }}')">
+                                                                        <i class="fas fa-copy me-1"></i>
+                                                                        Copiar
+                                                                    </button>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <div class="text-center py-4">
+                                                <i class="fas fa-video-slash text-muted" style="font-size: 3rem;"></i>
+                                                <p class="mt-3 mb-2 text-muted">No tienes videollamadas agendadas</p>
+                                                <a href="{{ route('student.calendar') }}" class="btn btn-primary">
+                                                    <i class="fas fa-calendar-plus me-2"></i>
+                                                    Agendar mi Primera Videollamada
+                                                </a>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="row mt-4">
                             <div class="col-md-6">
                                 <div class="card shadow-sm border-0">
@@ -252,6 +347,26 @@
         z-index: 1000;
     }
     
+    .video-call-card {
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .video-call-card:hover {
+        border-color: #0d6efd;
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
+        transform: translateY(-2px);
+    }
+    
+    .video-call-card .btn {
+        font-size: 0.875rem;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+    
     /* Responsive adjustments for dropdown */
     @media (max-width: 576px) {
         .dropdown-menu {
@@ -282,9 +397,81 @@
 @endpush
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('Student dashboard cargado correctamente');
+    $(document).ready(function() {
+        // Initialize any Select2 dropdowns if needed
     });
+    
+    // Cancel video call function
+    function cancelCall(callId) {
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: 'Esta acción cancelará tu videollamada agendada',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, cancelar',
+            cancelButtonText: 'No'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/dashboard/student/video-calls/${callId}/cancel`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire(
+                            'Cancelada',
+                            'Tu videollamada ha sido cancelada exitosamente',
+                            'success'
+                        ).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire(
+                            'Error',
+                            data.message || 'No se pudo cancelar la videollamada',
+                            'error'
+                        );
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire(
+                        'Error',
+                        'Hubo un problema al cancelar la videollamada',
+                        'error'
+                    );
+                });
+            }
+        });
+    }
+    
+    // Copy meet link function
+    function copyMeetLink(link) {
+        navigator.clipboard.writeText(link).then(function() {
+            Swal.fire({
+                title: '¡Enlace copiado!',
+                text: 'El enlace de Google Meet ha sido copiado al portapapeles',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }, function(err) {
+            console.error('Error al copiar: ', err);
+            Swal.fire(
+                'Error',
+                'No se pudo copiar el enlace',
+                'error'
+            );
+        });
+    }
 </script>
 @endpush

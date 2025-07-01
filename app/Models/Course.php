@@ -22,7 +22,15 @@ class Course extends Model
         'video_url',
         'duration',
         'type',
-        'completion_points'
+        'completion_points',
+        'price',
+        'currency',
+        'is_free'
+    ];
+
+    protected $casts = [
+        'price' => 'decimal:2',
+        'is_free' => 'boolean'
     ];
 
     /**
@@ -50,9 +58,29 @@ class Course extends Model
                     ->withPivot('completed', 'progress', 'last_accessed_at')
                     ->withTimestamps();
     }
-}
+
+    /**
+     * Get the lessons for this course
+     */
+    public function lessons()
     {
-        return $this->enrollments()->count();
+        return $this->hasMany(Lesson::class)->orderBy('order');
+    }
+
+    /**
+     * Get the payments for this course
+     */
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Get the comments/reviews for this course
+     */
+    public function reviews()
+    {
+        return $this->hasMany(Comment::class)->where('type', 'course_review');
     }
 
     /**
@@ -61,5 +89,53 @@ class Course extends Model
     public function enrollments()
     {
         return $this->hasMany(Enrollment::class);
+    }
+
+    /**
+     * Get the student count for this course
+     */
+    public function getStudentCountAttribute()
+    {
+        return $this->enrollments()->count();
+    }
+
+    /**
+     * Check if a user has purchased this course
+     */
+    public function isPurchasedByUser($userId)
+    {
+        return $this->payments()
+                    ->where('user_id', $userId)
+                    ->where('status', 'completed')
+                    ->exists();
+    }
+
+    /**
+     * Get the average rating for this course
+     */
+    public function getAverageRatingAttribute()
+    {
+        return $this->reviews()->avg('rating') ?? 0;
+    }
+
+    /**
+     * Get the next available lesson for a user
+     */
+    public function getNextLessonForUser($userId)
+    {
+        $completedLessons = $this->lessons()
+                                ->whereHas('users', function($query) use ($userId) {
+                                    $query->where('user_id', $userId)
+                                          ->where('completed', true);
+                                })
+                                ->pluck('order')
+                                ->toArray();
+
+        if (empty($completedLessons)) {
+            return $this->lessons()->first();
+        }
+
+        $nextOrder = max($completedLessons) + 1;
+        return $this->lessons()->where('order', $nextOrder)->first();
     }
 }

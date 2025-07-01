@@ -46,8 +46,13 @@ Route::get('/timezone/{countryId}', function ($countryId) {
     if ($response->isNotEmpty()) {
         return response()->json($response);
     } else {
-        return response()->json(['message' => 'No cities found for this state'], 404);
+        return response()->json(['message' => 'No timezones found for this country'], 404);
     }
 });
 
-
+// Schedule and availability API routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/schedule/available-slots', [App\Http\Controllers\ScheduleController::class, 'getAvailableSlots']);
+    Route::get('/schedule/teacher-appointments', [App\Http\Controllers\ScheduleController::class, 'teacherAppointments']);
+    Route::get('/student/available-slots', [App\Http\Controllers\StudentController::class, 'getAvailableSlots']);
+});

@@ -84,9 +84,13 @@
                         $day = $currentDay->addDay($i == 0 ? 0 : 1);
                         $dayNumber = $day->day;
                         $dayName = $weekdays[$i];
+                        $dateString = $day->format('Y-m-d');
                     @endphp
                     <div class="col">
-                        <div class="card day-card text-center" data-day="{{ $dayNumber }}" data-day-name="{{ $dayName }}">
+                        <div class="card day-card text-center" 
+                             data-day="{{ $dayNumber }}" 
+                             data-day-name="{{ $dayName }}"
+                             data-date="{{ $dateString }}">
                             <div class="card-body py-3">
                                 <h5 class="card-title mb-1">{{ $dayNumber }}</h5>
                                 <p class="card-text small mb-0">{{ $dayName }}</p>
@@ -108,91 +112,13 @@
             <p class="text-muted small mb-4">Selecciona el horario que mejor se adapte a tu rutina</p>
 
             <div class="row g-3">
-                <!-- Time slots with timezone info -->
-                <div class="col-md-4">
-                    <div class="card time-slot" data-time="09:00 AM">
-                        <div class="card-body text-center py-3">
-                            <h5 class="mb-0">09:00 AM</h5>
-                            <small class="text-muted timezone-note">{{ auth()->user()->timezoneuser ? '(' . str_replace('_', ' ', auth()->user()->timezoneuser) . ')' : '' }}</small>
+                <!-- Time slots will be loaded dynamically -->
+                <div id="time-slots-container">
+                    <div class="col-12 text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando horarios...</span>
                         </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card time-slot" data-time="10:00 AM">
-                        <div class="card-body text-center py-3">
-                            <h5 class="mb-0">10:00 AM</h5>
-                            <small class="text-muted timezone-note">{{ auth()->user()->timezoneuser ? '(' . str_replace('_', ' ', auth()->user()->timezoneuser) . ')' : '' }}</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card time-slot" data-time="11:00 AM">
-                        <div class="card-body text-center py-3">
-                            <h5 class="mb-0">11:00 AM</h5>
-                            <small class="text-muted timezone-note">{{ auth()->user()->timezoneuser ? '(' . str_replace('_', ' ', auth()->user()->timezoneuser) . ')' : '' }}</small>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Midday Time Slots -->
-                <div class="col-md-4">
-                    <div class="card time-slot" data-time="12:00 PM">
-                        <div class="card-body text-center py-3">
-                            <h5 class="mb-0">12:00 PM</h5>
-                            <small class="text-muted timezone-note">{{ auth()->user()->timezoneuser ? '(' . str_replace('_', ' ', auth()->user()->timezoneuser) . ')' : '' }}</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card time-slot" data-time="01:00 PM">
-                        <div class="card-body text-center py-3">
-                            <h5 class="mb-0">01:00 PM</h5>
-                            <small class="text-muted timezone-note">{{ auth()->user()->timezoneuser ? '(' . str_replace('_', ' ', auth()->user()->timezoneuser) . ')' : '' }}</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card time-slot" data-time="02:00 PM">
-                        <div class="card-body text-center py-3">
-                            <h5 class="mb-0">02:00 PM</h5>
-                            <small class="text-muted timezone-note">{{ auth()->user()->timezoneuser ? '(' . str_replace('_', ' ', auth()->user()->timezoneuser) . ')' : '' }}</small>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Afternoon Time Slots -->
-                <div class="col-md-4">
-                    <div class="card time-slot" data-time="03:00 PM">
-                        <div class="card-body text-center py-3">
-                            <h5 class="mb-0">03:00 PM</h5>
-                            <small class="text-muted timezone-note">{{ auth()->user()->timezoneuser ? '(' . str_replace('_', ' ', auth()->user()->timezoneuser) . ')' : '' }}</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card time-slot" data-time="04:00 PM">
-                        <div class="card-body text-center py-3">
-                            <h5 class="mb-0">04:00 PM</h5>
-                            <small class="text-muted timezone-note">{{ auth()->user()->timezoneuser ? '(' . str_replace('_', ' ', auth()->user()->timezoneuser) . ')' : '' }}</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card time-slot" data-time="05:00 PM">
-                        <div class="card-body text-center py-3">
-                            <h5 class="mb-0">05:00 PM</h5>
-                            <small class="text-muted timezone-note">{{ auth()->user()->timezoneuser ? '(' . str_replace('_', ' ', auth()->user()->timezoneuser) . ')' : '' }}</small>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Evening Time Slots -->
-                <div class="col-md-4">
-                    <div class="card time-slot" data-time="06:00 PM">
-                        <div class="card-body text-center py-3">
-                            <h5 class="mb-0">06:00 PM</h5>
-                            <small class="text-muted timezone-note">{{ auth()->user()->timezoneuser ? '(' . str_replace('_', ' ', auth()->user()->timezoneuser) . ')' : '' }}</small>
-                        </div>
+                        <p class="mt-2 text-muted">Cargando horarios disponibles...</p>
                     </div>
                 </div>
                 
@@ -257,8 +183,10 @@
     document.addEventListener('DOMContentLoaded', function() {
         let selectedDay = null;
         let selectedDayName = null;
+        let selectedDate = null;
         let selectedTime = null;
-        let userTimezone = "{{ auth()->user()->timezoneuser ?? 'America/Mexico_City' }}";
+        let userTimezone = "{{ auth()->user()->TimeZoneUser ?? 'America/Mexico_City' }}";
+        let availableSlots = [];
         
         // Update current date time display
         function updateCurrentDateTime() {
@@ -279,10 +207,127 @@
                 const formatter = new Intl.DateTimeFormat('es-ES', options);
                 currentDatetimeElement.textContent = formatter.format(new Date());
             }
+        }
+
+        // Load available time slots for selected date
+        function loadAvailableSlots(date) {
+            const container = document.getElementById('time-slots-container');
             
-            // Update timezone notes below time slots
-            document.querySelectorAll('.timezone-note').forEach(note => {
-                note.textContent = `(${userTimezone.replace('_', ' ')})`;
+            // Show loading state
+            container.innerHTML = `
+                <div class="col-12 text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando horarios...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Cargando horarios disponibles...</p>
+                </div>
+            `;
+
+            // Fetch available slots
+            fetch(`/api/student/available-slots?date=${date}&timezone=${userTimezone}`, {
+                headers: {
+                    'Authorization': 'Bearer {{ auth()->user()->createToken("api")->plainTextToken ?? "" }}',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    availableSlots = data.slots || [];
+                    renderTimeSlots();
+                } else {
+                    showError('Error al cargar horarios disponibles');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading slots:', error);
+                showError('Error de conexión al cargar horarios');
+            });
+        }
+
+        // Render time slots in the UI
+        function renderTimeSlots() {
+            const container = document.getElementById('time-slots-container');
+            
+            if (availableSlots.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            No hay horarios disponibles para esta fecha
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            let slotsHtml = '';
+            availableSlots.forEach(slot => {
+                const timeFormatted = formatTime(slot.time);
+                const isAvailable = slot.available;
+                const disabledClass = !isAvailable ? 'disabled opacity-50' : '';
+                const availableText = isAvailable ? 'Disponible' : 'Ocupado';
+                
+                slotsHtml += `
+                    <div class="col-md-4">
+                        <div class="card time-slot ${disabledClass}" data-time="${slot.time}" ${isAvailable ? '' : 'style="pointer-events: none;"'}>
+                            <div class="card-body text-center py-3">
+                                <h5 class="mb-0">${timeFormatted}</h5>
+                                <small class="text-muted timezone-note">(${userTimezone.replace('_', ' ')})</small>
+                                <br>
+                                <small class="badge ${isAvailable ? 'bg-success' : 'bg-secondary'} mt-1">${availableText}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = slotsHtml;
+            
+            // Re-attach event listeners for time selection
+            attachTimeSlotListeners();
+        }
+
+        // Format time from 24h to 12h format
+        function formatTime(time24) {
+            const [hours, minutes] = time24.split(':');
+            const hour = parseInt(hours);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const hour12 = hour % 12 || 12;
+            return `${hour12}:${minutes} ${ampm}`;
+        }
+
+        // Show error message
+        function showError(message) {
+            const container = document.getElementById('time-slots-container');
+            container.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        ${message}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Attach event listeners to time slots
+        function attachTimeSlotListeners() {
+            document.querySelectorAll('.time-slot:not(.disabled)').forEach(card => {
+                card.addEventListener('click', function() {
+                    // Remove active class from all time cards
+                    document.querySelectorAll('.time-slot').forEach(c => {
+                        c.classList.remove('border-primary', 'border-2');
+                    });
+                    
+                    // Add active class to selected card
+                    this.classList.add('border-primary', 'border-2');
+                    
+                    // Update selected time
+                    selectedTime = this.getAttribute('data-time');
+                    document.getElementById('selected-time').textContent = formatTime(selectedTime);
+                    
+                    updateConfirmButton();
+                });
             });
         }
         
@@ -290,6 +335,10 @@
         updateCurrentDateTime();
         // Update every second
         setInterval(updateCurrentDateTime, 1000);
+        
+        // Load default time slots for today
+        const today = new Date().toISOString().split('T')[0];
+        loadAvailableSlots(today);
         
         // Day Selection
         document.querySelectorAll('.day-card').forEach(card => {
@@ -305,11 +354,39 @@
                 // Update selected day
                 selectedDay = this.getAttribute('data-day');
                 selectedDayName = this.getAttribute('data-day-name');
+                selectedDate = this.getAttribute('data-date') || calculateDateFromDay(selectedDay);
+                
                 document.getElementById('selected-day').textContent = `${selectedDay} (${selectedDayName})`;
+                
+                // Clear selected time
+                selectedTime = null;
+                document.getElementById('selected-time').textContent = 'No seleccionado';
+                document.querySelectorAll('.time-slot').forEach(c => {
+                    c.classList.remove('border-primary', 'border-2');
+                });
+                
+                // Load available slots for selected date
+                loadAvailableSlots(selectedDate);
                 
                 updateConfirmButton();
             });
         });
+
+        // Helper function to calculate date from day number
+        function calculateDateFromDay(dayNumber) {
+            const today = new Date();
+            const currentDay = today.getDate();
+            const targetDay = parseInt(dayNumber);
+            
+            if (targetDay >= currentDay) {
+                today.setDate(targetDay);
+            } else {
+                today.setMonth(today.getMonth() + 1);
+                today.setDate(targetDay);
+            }
+            
+            return today.toISOString().split('T')[0];
+        }
         
         // Time Selection
         document.querySelectorAll('.time-slot').forEach(card => {
@@ -383,35 +460,35 @@
                             body: JSON.stringify({
                                 day: selectedDay,
                                 time: selectedTime,
-                                timezone: userTimezone
+                                timezone: userTimezone,
+                                date: selectedDate
                             })
                         })
                         .then(response => {
-                            // Store the response status for later use
-                            const isSuccessful = response.ok;
-                            
-                            // Try to parse JSON response if available, otherwise return empty object
-                            return response.text().then(text => {
-                                try {
-                                    return text ? JSON.parse(text) : {};
-                                } catch (e) {
-                                    console.log('Response is not JSON:', text);
-                                    return { message: text || 'Success' };
-                                }
-                            }).then(data => {
-                                return { isSuccessful, data };
+                            return response.json().then(data => {
+                                return { isSuccessful: response.ok, data };
                             });
                         })
                         .then(({ isSuccessful, data }) => {
-                            if (isSuccessful) {
+                            if (isSuccessful && data.success) {
                                 // Success modal
                                 Swal.fire({
                                     title: '¡Cita confirmada!',
-                                    text: 'Tu videollamada ha sido agendada correctamente',
+                                    html: `
+                                        <p>Tu videollamada ha sido agendada correctamente</p>
+                                        <div class="mt-3 p-3 bg-light rounded">
+                                            <strong>Enlace de Google Meet:</strong><br>
+                                            <a href="${data.meet_link}" target="_blank" class="btn btn-primary btn-sm mt-2">
+                                                <i class="bi bi-camera-video me-1"></i>
+                                                Abrir Google Meet
+                                            </a>
+                                        </div>
+                                    `,
                                     icon: 'success',
-                                    confirmButtonColor: '#9042db'
+                                    confirmButtonColor: '#9042db',
+                                    confirmButtonText: 'Ir al Dashboard'
                                 }).then(() => {
-                                    // Redirect to welcome page or the provided redirect URL
+                                    // Redirect to student dashboard
                                     window.location.href = '{{ route("student.index") }}';
                                 });
                             } else {
@@ -423,7 +500,7 @@
                             console.error('Error saving appointment:', error);
                             Swal.fire({
                                 title: 'Error',
-                                text: 'Hubo un problema al guardar tu cita. Por favor, intenta de nuevo.',
+                                text: error.message || 'Hubo un problema al guardar tu cita. Por favor, intenta de nuevo.',
                                 icon: 'error',
                                 confirmButtonColor: '#9042db'
                             });

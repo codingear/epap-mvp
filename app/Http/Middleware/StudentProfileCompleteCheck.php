@@ -32,10 +32,18 @@ class StudentProfileCompleteCheck
         // Check if the student has a video call record
         $hasVideoCall = VideoCall::where('user_id', $user->id)->exists();
         
-        // If profile is incomplete or no video call record, redirect to welcome page
-        if (!$profileComplete || !$hasVideoCall) {
-            return redirect()->route('student.calendar')->with('error', 'Please complete your profile and have a video call before accessing the calendar.');
-        } else {
+        // New user (first time) - needs to complete profile
+        if (!$profileComplete && !$request->routeIs('student.welcome') && !$request->routeIs('student.profile.update')) {
+            return redirect()->route('student.welcome');
+        }
+        
+        // Profile complete but no video call yet - direct to calendar
+        if ($profileComplete && !$hasVideoCall && !$request->routeIs('student.calendar') && !$request->routeIs('student.calendar.create')) {
+            return redirect()->route('student.calendar');
+        }
+        
+        // If profile complete and has video call, but trying to access welcome or calendar pages
+        if ($profileComplete && $hasVideoCall && ($request->routeIs('student.welcome') || $request->routeIs('student.calendar'))) {
             return redirect()->route('student.index');
         }
 

@@ -16,7 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'student.profile.complete' => StudentProfileCompleteCheck::class,
+            'student.complete' => StudentProfileCompleteCheck::class,
             'role' => RoleMiddleware::class,
             'check.role' => CheckRole::class,
         ]);
