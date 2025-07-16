@@ -41,4 +41,12 @@ class Enrollment extends Model
     {
         return $this->belongsTo(Level::class);
     }
+
+    /**
+     * Get the payment for this enrollment
+     */
+    public function payment()
+    {
+        return $this->belongsTo(Payment::class);
+    }
 }

@@ -216,8 +216,28 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}" href="#">
+                            <a class="nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}" href="{{ route('admin.users') }}">
                                 <i class="bi bi-people me-1"></i> Usuarios
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('admin.courses*') ? 'active' : '' }}" href="{{ route('admin.courses.index') }}">
+                                <i class="bi bi-book me-1"></i> Cursos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('admin.levels*') ? 'active' : '' }}" href="{{ route('admin.levels') }}">
+                                <i class="bi bi-layers me-1"></i> Niveles
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('admin.payments*') ? 'active' : '' }}" href="{{ route('admin.payments') }}">
+                                <i class="bi bi-credit-card me-1"></i> Pagos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('admin.enrollments*') ? 'active' : '' }}" href="{{ route('admin.enrollments') }}">
+                                <i class="bi bi-mortarboard me-1"></i> Inscripciones
                             </a>
                         </li>
                         <li class="nav-item dropdown">

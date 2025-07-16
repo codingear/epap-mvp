@@ -80,4 +80,28 @@ class VideoCall extends Model
         
         return "Day {$this->day} at {$this->time}";
     }
+
+    /**
+     * Scope to filter welcome video calls
+     */
+    public function scopeWelcome($query)
+    {
+        return $query->where('type', 'welcome');
+    }
+
+    /**
+     * Scope to filter by user
+     */
+    public function scopeForUser($query, $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Check if user has a welcome call
+     */
+    public static function userHasWelcomeCall($userId)
+    {
+        return static::forUser($userId)->welcome()->exists();
+    }
 }

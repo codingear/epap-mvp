@@ -23,6 +23,9 @@ class CreateCoursesTable extends Migration
             $table->enum('status', ['active', 'inactive', 'draft'])->default('draft');
             $table->integer('order')->default(0);
             $table->string('slug')->unique();
+             $table->decimal('price', 10, 2)->default(0);
+            $table->string('currency', 3)->default('USD');
+            $table->boolean('is_free')->default(false);
             $table->string('cover_image')->nullable();
             $table->string('video_url')->nullable();
             $table->integer('duration')->nullable()->comment('Duration in minutes');

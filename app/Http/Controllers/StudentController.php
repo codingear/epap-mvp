@@ -27,11 +27,33 @@ class StudentController extends Controller
      */
     public function index()
     {
-        $videoCalls = VideoCall::where('user_id', Auth::id())
+        $user = Auth::user();
+        
+        // Get all video calls for the student
+        $videoCalls = VideoCall::where('user_id', $user->id)
             ->with('teacher')
             ->orderBy('created_at', 'desc')
             ->get();
-        return view('student.index', compact('videoCalls'));
+            
+        // Get specific welcome call
+        $welcomeCall = VideoCall::forUser($user->id)
+            ->welcome()
+            ->first();
+            
+        // Get user's enrollments and courses (if you have this relationship)
+        // You can uncomment these lines when you implement course enrollment system
+        // $enrollments = $user->enrollments()->with('course')->get();
+        // $courses = $enrollments->pluck('course');
+        
+        $data = [
+            'videoCalls' => $videoCalls,
+            'welcomeCall' => $welcomeCall,
+            'user' => $user,
+            // 'enrollments' => $enrollments ?? collect(),
+            // 'courses' => $courses ?? collect(),
+        ];
+        
+        return view('student.index', $data);
     }
 
     public function welcome()
@@ -74,8 +96,10 @@ class StudentController extends Controller
         }
     }
 
-    public function update(Request $request, User $user)
+    public function update(Request $request, ?User $user = null)
     {
+        // Commented out welcome flow - users now go directly to calendar
+        /*
         if($request->type_update == 'welcome') {
             // Validate the input
             $validated = $request->validate([
@@ -94,9 +118,54 @@ class StudentController extends Controller
             $currentUser->save();
 
             return redirect()->route('student.calendar');
+        } else
+        */
+        if($request->type_update == 'profile_edit') {
+            // Validate the input for profile editing
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'child_name' => 'nullable|string|max:255',
+                'email' => 'required|email|max:255|unique:users,email,' . Auth::id(),
+                'phone' => 'nullable|string|max:20',
+                'date_of_birth' => 'nullable|date',
+                'timezone' => 'nullable|string',
+                'country' => 'nullable|string|max:255',
+                'state' => 'nullable|string|max:255',
+                'city' => 'nullable|string|max:255',
+                'password' => 'nullable|string|min:8|confirmed',
+            ]);
+
+            // Update the authenticated user
+            $currentUser = Auth::user();
+            $currentUser->name = $validated['name'];
+            $currentUser->child_name = $validated['child_name'];
+            $currentUser->email = $validated['email'];
+            $currentUser->phone = $validated['phone'];
+            $currentUser->date_of_birth = $validated['date_of_birth'];
+            $currentUser->timezone = $validated['timezone'];
+            $currentUser->country = $validated['country'];
+            $currentUser->state = $validated['state'];
+            $currentUser->city = $validated['city'];
+            
+            // Only update password if provided
+            if ($request->filled('password')) {
+                $currentUser->password = Hash::make($validated['password']);
+            }
+            
+            $currentUser->save();
+
+            return redirect()->route('student.profile.edit')->with('success', '¡Perfil actualizado exitosamente!');
         } else {
             return redirect()->route('student.calendar');
         }
+    }
+
+    /**
+     * Show the form for editing the student profile.
+     */
+    public function editProfile()
+    {
+        return view('student.profile.edit');
     }
 
     public function calendar_create(Request $request)
@@ -108,29 +177,49 @@ class StudentController extends Controller
             $validated = $request->validate([
                 'day' => 'required|string',
                 'time' => 'required|string',
-                'timezone' => 'required|string'
+                'timezone' => 'required|string',
+                'date' => 'required|string|date'
             ]);
 
-            // Parse the selected day and time
-            $selectedDate = Carbon::now()->addDays((int)$validated['day'] - Carbon::now()->day);
-            $selectedTime = Carbon::parse($validated['time'])->format('H:i:s');
-            $scheduledAt = Carbon::parse($selectedDate->format('Y-m-d') . ' ' . $selectedTime);
+            // Parse the selected date and time
+            $selectedDate = Carbon::parse($validated['date'], $validated['timezone']);
+            $selectedTime = $validated['time'];
+            $scheduledAt = Carbon::parse($validated['date'] . ' ' . $selectedTime, $validated['timezone']);
 
-            // Check if slot is still available
-            $isSlotAvailable = AvailableSchedule::isSlotAvailable(
-                $selectedDate->format('Y-m-d'),
-                $selectedTime,
-                $validated['timezone']
-            );
+            // Check if the slot is in the past
+            if ($scheduledAt->isPast()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se puede agendar una cita en el pasado.'
+                ], 422);
+            }
 
-            if (!$isSlotAvailable) {
+            // Check if user already has a scheduled video call
+            $existingCall = VideoCall::where('user_id', $user->id)
+                ->where('status', 'scheduled')
+                ->first();
+
+            if ($existingCall) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya tienes una videollamada agendada. Cancela la anterior para crear una nueva.'
+                ], 422);
+            }
+
+            // Check if slot is still available (basic check)
+            $conflictingCall = VideoCall::whereDate('scheduled_at', $selectedDate->format('Y-m-d'))
+                ->whereTime('scheduled_at', $selectedTime)
+                ->where('status', '!=', 'canceled')
+                ->first();
+
+            if ($conflictingCall) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Este horario ya no está disponible. Por favor selecciona otro.'
                 ], 422);
             }
 
-            // Create the video call
+            // Create the video call with a temporary URL
             $videoCall = VideoCall::create([
                 'user_id' => $user->id,
                 'day' => $validated['day'],
@@ -138,7 +227,8 @@ class StudentController extends Controller
                 'timezone' => $validated['timezone'],
                 'scheduled_at' => $scheduledAt,
                 'status' => 'scheduled',
-                'type' => 'welcome'
+                'type' => 'welcome',
+                'url' => 'pending' // Temporary URL, will be updated with actual Google Meet link
             ]);
 
             // Generate Google Meet link
@@ -155,6 +245,9 @@ class StudentController extends Controller
                     'meet_link' => $meetResult['meet_link']
                 ]);
             } else {
+                // Delete the video call if Meet link creation failed
+                $videoCall->delete();
+                
                 return response()->json([
                     'success' => false,
                     'message' => 'Error al crear el enlace de Google Meet: ' . $meetResult['error']
@@ -196,12 +289,47 @@ class StudentController extends Controller
      */
     public function getAvailableSlots(Request $request)
     {
-        $date = $request->get('date');
-        $timezone = $request->get('timezone', 'America/Mexico_City');
+        try {
+            $date = $request->get('date');
+            $timezone = $request->get('timezone', 'America/Mexico_City');
 
-        $slots = $this->googleMeetService->getAvailableSlots($date, $timezone);
+            // Validate inputs
+            if (!$date) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Fecha requerida'
+                ], 400);
+            }
 
-        return response()->json($slots);
+            $slots = $this->googleMeetService->getAvailableSlots($date, $timezone);
+
+            // Filter out past slots for today
+            $today = Carbon::today($timezone);
+            $requestDate = Carbon::parse($date, $timezone);
+            
+            if ($requestDate->isSameDay($today)) {
+                $now = Carbon::now($timezone);
+                $slots = array_filter($slots, function($slot) use ($now) {
+                    $slotTime = Carbon::parse($slot['datetime']);
+                    return $slotTime->isAfter($now);
+                });
+                $slots = array_values($slots); // Reset array keys
+            }
+
+            return response()->json([
+                'success' => true,
+                'slots' => $slots,
+                'date' => $date,
+                'timezone' => $timezone,
+                'total_slots' => count($slots)
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener horarios disponibles: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -231,5 +359,54 @@ class StudentController extends Controller
                 'message' => 'Error al cancelar la videollamada'
             ], 500);
         }
+    }
+
+    /**
+     * Update user's timezone
+     */
+    public function updateTimezone(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'timezone' => 'required|string|max:255'
+            ]);
+
+            $user = Auth::user();
+            $user->timezone = $validated['timezone'];
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Zona horaria actualizada correctamente',
+                'timezone' => $validated['timezone']
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar la zona horaria: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if student has a welcome video call
+     */
+    public function hasWelcomeCall($userId = null)
+    {
+        $userId = $userId ?? Auth::id();
+        return VideoCall::userHasWelcomeCall($userId);
+    }
+
+    /**
+     * Get student's welcome call details
+     */
+    public function getWelcomeCall($userId = null)
+    {
+        $userId = $userId ?? Auth::id();
+        
+        return VideoCall::forUser($userId)
+            ->welcome()
+            ->with('teacher')
+            ->first();
     }
 }

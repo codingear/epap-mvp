@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('country')->nullable();
             $table->string('state')->nullable();
             $table->string('city')->nullable();
-            $table->string('timezone')->nullable();
+            $table->string('timezone')->default('America/Mexico_City');
             $table->string('child_name')->nullable();
             $table->date('date_of_birth')->nullable();
             $table->string('phone')->nullable();

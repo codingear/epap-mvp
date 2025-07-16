@@ -26,24 +26,22 @@ class StudentProfileCompleteCheck
 
         $user = Auth::user();
         
-        // Check if the student has completed their profile
-        $profileComplete = $user->country && $user->state && $user->city;
+        // Check if the student has a welcome video call record
+        $hasWelcomeCall = VideoCall::userHasWelcomeCall($user->id);
         
-        // Check if the student has a video call record
-        $hasVideoCall = VideoCall::where('user_id', $user->id)->exists();
-        
-        // New user (first time) - needs to complete profile
-        if (!$profileComplete && !$request->routeIs('student.welcome') && !$request->routeIs('student.profile.update')) {
-            return redirect()->route('student.welcome');
+        // Debug: Allow access to debug route
+        if ($request->routeIs('debug.student.status')) {
+            return $next($request);
         }
         
-        // Profile complete but no video call yet - direct to calendar
-        if ($profileComplete && !$hasVideoCall && !$request->routeIs('student.calendar') && !$request->routeIs('student.calendar.create')) {
+        // If user doesn't have a welcome call yet - direct to calendar to schedule one
+        if (!$hasWelcomeCall && !$request->routeIs('student.welcome') && !$request->routeIs('student.profile.update') && !$request->routeIs('student.calendar') && !$request->routeIs('student.calendar.create') && !$request->routeIs('student.profile.edit')) {
             return redirect()->route('student.calendar');
         }
         
-        // If profile complete and has video call, but trying to access welcome or calendar pages
-        if ($profileComplete && $hasVideoCall && ($request->routeIs('student.welcome') || $request->routeIs('student.calendar'))) {
+        // If user has welcome video call, but trying to access welcome or calendar pages
+        // Redirect to main dashboard where they can see their welcome call, courses, and progress
+        if ($hasWelcomeCall && ($request->routeIs('student.welcome') || $request->routeIs('student.calendar'))) {
             return redirect()->route('student.index');
         }
 

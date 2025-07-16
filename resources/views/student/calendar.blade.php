@@ -15,11 +15,33 @@
                 
                 <!-- Right Side: Timezone, User Info and Logout -->
                 <div class="d-flex align-items-center">
-                    <!-- Timezone Display (No longer a dropdown) -->
+                    <!-- Timezone Dropdown -->
                     <div class="me-3">
-                        <button class="btn btn-outline-secondary" type="button">
-                            <i class="bi bi-globe me-1"></i> {{auth()->user()->timezoneuser}}
-                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="timezoneDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-globe me-1"></i> 
+                                <span id="current-timezone-display">{{auth()->user()->timezone ?? 'Seleccionar zona horaria'}}</span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="timezoneDropdown" style="max-height: 300px; overflow-y: auto;">
+                                <li><h6 class="dropdown-header">Zonas Horarias Disponibles</h6></li>
+                                <!-- Common timezones for Mexico and Latin America -->
+                                <li><a class="dropdown-item timezone-option" href="#" data-timezone="America/Mexico_City">México Central (UTC-6)</a></li>
+                                <li><a class="dropdown-item timezone-option" href="#" data-timezone="America/Tijuana">México Pacífico (UTC-8)</a></li>
+                                <li><a class="dropdown-item timezone-option" href="#" data-timezone="America/Cancun">México Este (UTC-5)</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item timezone-option" href="#" data-timezone="America/New_York">Nueva York (UTC-5)</a></li>
+                                <li><a class="dropdown-item timezone-option" href="#" data-timezone="America/Los_Angeles">Los Ángeles (UTC-8)</a></li>
+                                <li><a class="dropdown-item timezone-option" href="#" data-timezone="America/Chicago">Chicago (UTC-6)</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item timezone-option" href="#" data-timezone="America/Bogota">Bogotá (UTC-5)</a></li>
+                                <li><a class="dropdown-item timezone-option" href="#" data-timezone="America/Lima">Lima (UTC-5)</a></li>
+                                <li><a class="dropdown-item timezone-option" href="#" data-timezone="America/Argentina/Buenos_Aires">Buenos Aires (UTC-3)</a></li>
+                                <li><a class="dropdown-item timezone-option" href="#" data-timezone="America/Santiago">Santiago (UTC-3)</a></li>
+                                <li><a class="dropdown-item timezone-option" href="#" data-timezone="America/Caracas">Caracas (UTC-4)</a></li>
+                                <li><a class="dropdown-item timezone-option" href="#" data-timezone="Europe/Madrid">Madrid (UTC+1)</a></li>
+                                <li><a class="dropdown-item timezone-option" href="#" data-timezone="Europe/London">Londres (UTC+0)</a></li>
+                            </ul>
+                        </div>
                     </div>
                     
                     <!-- User Avatar and Dropdown -->
@@ -29,7 +51,7 @@
                             <span class="d-none d-md-inline">{{ auth()->user()->name ?? 'Usuario' }}</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Mi Perfil</a></li>
+                            <li><a class="dropdown-item" href="{{ route('student.profile.edit') }}"><i class="bi bi-person me-2"></i>Editar Perfil</a></li>
                             <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Configuración</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
@@ -64,6 +86,24 @@
         </div>
     </div>
 
+    <!-- Current Date Time Display Mejorado -->
+    <div class="row justify-content-center mt-3 mb-4">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow border-0 rounded-4" style="background: linear-gradient(90deg, #9042db 60%, #c165dd 100%);">
+                <div class="card-body text-center py-3">
+                    <div class="d-flex flex-column align-items-center justify-content-center">
+                        <span class="text-white fw-bold mb-2" style="font-size: 1rem;">
+                            <i class="bi bi-clock-history me-2"></i> Tu hora local actual
+                        </span>
+                        <span id="current-datetime" class="fw-bold text-white" style="font-size: 1.5rem; letter-spacing: 1px; text-shadow: 0 2px 8px #9042db;">
+                            <!-- La hora se mostrará aquí -->
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Date Selection -->
     <div class="card mb-4 shadow-sm rounded-4">
         <div class="card-body p-4">
@@ -75,15 +115,23 @@
 
             <div class="row g-3 justify-content-center">
                 @php
-                    $currentDay = now();
-                    $weekdays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+                    $weekdaysInSpanish = [
+                        'Monday' => 'Lunes',
+                        'Tuesday' => 'Martes', 
+                        'Wednesday' => 'Miércoles',
+                        'Thursday' => 'Jueves',
+                        'Friday' => 'Viernes',
+                        'Saturday' => 'Sábado',
+                        'Sunday' => 'Domingo'
+                    ];
                 @endphp
 
                 @for ($i = 0; $i < 5; $i++)
                     @php
-                        $day = $currentDay->addDay($i == 0 ? 0 : 1);
+                        $day = now()->addDays($i);
                         $dayNumber = $day->day;
-                        $dayName = $weekdays[$i];
+                        $englishDayName = $day->format('l'); // Monday, Tuesday, etc.
+                        $dayName = $weekdaysInSpanish[$englishDayName];
                         $dateString = $day->format('Y-m-d');
                     @endphp
                     <div class="col">
@@ -113,22 +161,12 @@
 
             <div class="row g-3">
                 <!-- Time slots will be loaded dynamically -->
-                <div id="time-slots-container">
+                <div id="time-slots-container" class="row">
                     <div class="col-12 text-center">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Cargando horarios...</span>
                         </div>
                         <p class="mt-2 text-muted">Cargando horarios disponibles...</p>
-                    </div>
-                </div>
-                
-                <!-- Current Date Time Display -->
-                <div class="col-12 mt-3">
-                    <div class="card">
-                        <div class="card-body text-center py-3">
-                            <small class="text-muted d-block mb-1">Tu hora local:</small>
-                            <p id="current-datetime" class="mb-0 fw-bold"></p>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -160,7 +198,7 @@
                 <div class="col-md-4">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Zona Horaria:</label>
-                        <p id="selected-timezone" class="mb-0 text-primary">{{ auth()->user()->timezoneuser ? str_replace('_', ' ', auth()->user()->timezoneuser) : 'No configurada' }}</p>
+                        <p id="selected-timezone" class="mb-0 text-primary">{{ auth()->user()->timezone ? str_replace('_', ' ', auth()->user()->timezone) : 'No configurada' }}</p>
                     </div>
                 </div>
             </div>
@@ -185,27 +223,131 @@
         let selectedDayName = null;
         let selectedDate = null;
         let selectedTime = null;
-        let userTimezone = "{{ auth()->user()->TimeZoneUser ?? 'America/Mexico_City' }}";
+        let userTimezone = "{{ auth()->user()->timezone ?? 'America/Mexico_City' }}";
         let availableSlots = [];
+        
+        // Validate and sanitize timezone
+        if (!userTimezone || userTimezone.trim() === '' || userTimezone === 'null' || userTimezone === 'undefined') {
+            userTimezone = 'America/Mexico_City';
+        }
+
+        // Timezone change handler
+        document.querySelectorAll('.timezone-option').forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.preventDefault();
+                const newTimezone = this.getAttribute('data-timezone');
+                const timezoneText = this.textContent;
+                
+                // Show loading state
+                Swal.fire({
+                    title: 'Actualizando zona horaria...',
+                    text: 'Espera un momento',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    willOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Update timezone in database
+                fetch('{{ route("student.update.timezone") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        timezone: newTimezone
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update local timezone
+                        userTimezone = newTimezone;
+                        
+                        // Update display
+                        document.getElementById('current-timezone-display').textContent = timezoneText;
+                        document.getElementById('selected-timezone').textContent = timezoneText;
+                        
+                        // Reload time slots if date is selected
+                        if (selectedDate) {
+                            loadAvailableSlots(selectedDate);
+                        }
+                        
+                        // Update current time display
+                        updateCurrentDateTime();
+                        
+                        Swal.close();
+                        
+                        // Show success message
+                        Swal.fire({
+                            title: '¡Zona horaria actualizada!',
+                            text: 'Los horarios se han actualizado según tu nueva zona horaria',
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        throw new Error(data.message || 'Error al actualizar zona horaria');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating timezone:', error);
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'No se pudo actualizar la zona horaria. Intenta de nuevo.',
+                        icon: 'error',
+                        confirmButtonColor: '#9042db'
+                    });
+                });
+            });
+        });
         
         // Update current date time display
         function updateCurrentDateTime() {
             const currentDatetimeElement = document.getElementById('current-datetime');
             
             if (currentDatetimeElement) {
-                const options = {
-                    timeZone: userTimezone,
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                };
+                // Validate timezone before using it
+                let validTimezone = userTimezone;
+                if (!validTimezone || validTimezone.trim() === '') {
+                    validTimezone = 'America/Mexico_City'; // Default fallback
+                }
                 
-                const formatter = new Intl.DateTimeFormat('es-ES', options);
-                currentDatetimeElement.textContent = formatter.format(new Date());
+                try {
+                    const options = {
+                        timeZone: validTimezone,
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    };
+                    
+                    const formatter = new Intl.DateTimeFormat('es-ES', options);
+                    currentDatetimeElement.textContent = formatter.format(new Date());
+                } catch (error) {
+                    console.error('Invalid timezone:', validTimezone, error);
+                    // Fallback to default timezone
+                    userTimezone = 'America/Mexico_City';
+                    const options = {
+                        timeZone: 'America/Mexico_City',
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    };
+                    
+                    const formatter = new Intl.DateTimeFormat('es-ES', options);
+                    currentDatetimeElement.textContent = formatter.format(new Date());
+                }
             }
         }
 
@@ -219,29 +361,40 @@
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Cargando horarios...</span>
                     </div>
-                    <p class="mt-2 text-muted">Cargando horarios disponibles...</p>
+                    <p class="mt-2 text-muted">Cargando horarios disponibles para tu zona horaria...</p>
+                    <small class="text-muted">${userTimezone.replace('_', ' ')}</small>
                 </div>
             `;
 
             // Fetch available slots
-            fetch(`/api/student/available-slots?date=${date}&timezone=${userTimezone}`, {
+            fetch(`/api/student/available-slots?date=${date}&timezone=${encodeURIComponent(userTimezone)}`, {
+                method: 'GET',
                 headers: {
                     'Authorization': 'Bearer {{ auth()->user()->createToken("api")->plainTextToken ?? "" }}',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('Available slots response:', data);
+                
                 if (data.success) {
-                    availableSlots = data.slots || [];
+                    availableSlots = data.slots || data.data || [];
                     renderTimeSlots();
                 } else {
-                    showError('Error al cargar horarios disponibles');
+                    throw new Error(data.message || 'Error al cargar horarios disponibles');
                 }
             })
             .catch(error => {
                 console.error('Error loading slots:', error);
-                showError('Error de conexión al cargar horarios');
+                showError('Error de conexión al cargar horarios. Verifica tu conexión e intenta de nuevo.');
             });
         }
 
@@ -249,52 +402,92 @@
         function renderTimeSlots() {
             const container = document.getElementById('time-slots-container');
             
-            if (availableSlots.length === 0) {
+            if (!availableSlots || availableSlots.length === 0) {
                 container.innerHTML = `
                     <div class="col-12 text-center">
                         <div class="alert alert-warning">
                             <i class="bi bi-exclamation-triangle me-2"></i>
                             No hay horarios disponibles para esta fecha
+                            <br><small class="text-muted">Zona horaria: ${userTimezone.replace('_', ' ')}</small>
                         </div>
+                        <button class="btn btn-outline-primary btn-sm mt-2" id="reload-slots-btn">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Recargar horarios
+                        </button>
                     </div>
                 `;
                 return;
             }
 
             let slotsHtml = '';
-            availableSlots.forEach(slot => {
-                const timeFormatted = formatTime(slot.time);
-                const isAvailable = slot.available;
+            availableSlots.forEach((slot, index) => {
+                const timeFormatted = formatTime(slot.time || slot.start_time || slot.hour);
+                const isAvailable = slot.available !== false && slot.status !== 'occupied';
                 const disabledClass = !isAvailable ? 'disabled opacity-50' : '';
                 const availableText = isAvailable ? 'Disponible' : 'Ocupado';
                 
                 slotsHtml += `
-                    <div class="col-md-4">
-                        <div class="card time-slot ${disabledClass}" data-time="${slot.time}" ${isAvailable ? '' : 'style="pointer-events: none;"'}>
+                    <div class="col-md-3 col-sm-6 col-12 mb-3">
+                        <div class="card time-slot ${disabledClass}" data-time="${slot.time || slot.start_time || slot.hour}" ${isAvailable ? '' : 'style="pointer-events: none;"'}>
                             <div class="card-body text-center py-3">
-                                <h5 class="mb-0">${timeFormatted}</h5>
-                                <small class="text-muted timezone-note">(${userTimezone.replace('_', ' ')})</small>
-                                <br>
-                                <small class="badge ${isAvailable ? 'bg-success' : 'bg-secondary'} mt-1">${availableText}</small>
+                                <h5 class="mb-1">${timeFormatted}</h5>
+                                <small class="text-muted timezone-note d-block">${userTimezone.replace('_', ' ')}</small>
+                                <small class="badge ${isAvailable ? 'bg-success' : 'bg-secondary'} mt-2">${availableText}</small>
                             </div>
                         </div>
                     </div>
                 `;
             });
 
+            // Add refresh button at the end
+            slotsHtml += `
+                <div class="col-12 text-center mt-3">
+                    <button class="btn btn-outline-primary btn-sm" id="refresh-slots-btn">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Actualizar horarios
+                    </button>
+                </div>
+            `;
+
             container.innerHTML = slotsHtml;
             
             // Re-attach event listeners for time selection
             attachTimeSlotListeners();
+            
+            // Add event listeners for reload buttons
+            const reloadBtn = document.getElementById('reload-slots-btn');
+            if (reloadBtn) {
+                reloadBtn.addEventListener('click', function() {
+                    loadAvailableSlots(selectedDate);
+                });
+            }
+            
+            const refreshBtn = document.getElementById('refresh-slots-btn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function() {
+                    loadAvailableSlots(selectedDate);
+                });
+            }
         }
 
         // Format time from 24h to 12h format
         function formatTime(time24) {
-            const [hours, minutes] = time24.split(':');
+            if (!time24) return 'Hora no disponible';
+            
+            // Handle different time formats
+            let timeStr = time24;
+            if (time24.includes('T')) {
+                // ISO format
+                timeStr = new Date(time24).toLocaleTimeString('en-US', { 
+                    hour12: false, 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }
+            
+            const [hours, minutes] = timeStr.split(':');
             const hour = parseInt(hours);
             const ampm = hour >= 12 ? 'PM' : 'AM';
             const hour12 = hour % 12 || 12;
-            return `${hour12}:${minutes} ${ampm}`;
+            return `${hour12}:${minutes || '00'} ${ampm}`;
         }
 
         // Show error message
@@ -306,8 +499,21 @@
                         <i class="bi bi-exclamation-triangle me-2"></i>
                         ${message}
                     </div>
+                    <div class="text-center">
+                        <button class="btn btn-outline-primary btn-sm" id="retry-slots-btn">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Intentar de nuevo
+                        </button>
+                    </div>
                 </div>
             `;
+            
+            // Add event listener for retry button
+            const retryBtn = document.getElementById('retry-slots-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', function() {
+                    loadAvailableSlots(selectedDate || new Date().toISOString().split('T')[0]);
+                });
+            }
         }
 
         // Attach event listeners to time slots
@@ -338,6 +544,17 @@
         
         // Load default time slots for today
         const today = new Date().toISOString().split('T')[0];
+        selectedDate = today;
+        
+        // Auto-select today
+        const todayCard = document.querySelector(`[data-date="${today}"]`);
+        if (todayCard) {
+            todayCard.classList.add('border-primary', 'border-2');
+            selectedDay = todayCard.getAttribute('data-day');
+            selectedDayName = todayCard.getAttribute('data-day-name');
+            document.getElementById('selected-day').textContent = `${selectedDay} (${selectedDayName})`;
+        }
+        
         loadAvailableSlots(today);
         
         // Day Selection
@@ -633,6 +850,39 @@
     #userDropdown {
         border: none;
         background: transparent;
+    }
+    
+    /* Timezone dropdown styling */
+    .dropdown-menu {
+        border-radius: 10px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        border: none;
+    }
+    
+    .dropdown-item:hover {
+        background-color: #f8f9fa;
+        color: #9042db;
+    }
+    
+    .dropdown-header {
+        color: #9042db;
+        font-weight: 600;
+    }
+    
+    /* Loading states */
+    .spinner-border {
+        animation-duration: 0.8s;
+    }
+    
+    /* Time slot improvements */
+    .time-slot .timezone-note {
+        font-size: 0.7rem;
+        opacity: 0.8;
+    }
+    
+    .time-slot.border-primary .timezone-note {
+        color: #9042db;
+        font-weight: 500;
     }
 </style>
 @endpush

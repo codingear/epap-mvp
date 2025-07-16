@@ -60,8 +60,7 @@ class User extends Authenticatable
 
     public function getTimeZoneUserAttribute(): string
     {
-        $timezone = Timezone::where('id', $this->timezone)->first();
-        return $timezone ? $timezone->name : '';
+        return $this->timezone ?? '';
     }
     
     /**
